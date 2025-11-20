@@ -45,7 +45,7 @@ router.post("/login", async (req, res) => {
         const token = jwt.sign(
             { userId: user.id, email: user.email },
             process.env.JWT_SECRET,
-            { expiresIn: "1h" }
+            { expiresIn: "9h" }
         );
 
         res.json({ message: "Login successful", token });
@@ -132,6 +132,121 @@ router.delete("/members/:id", async (req, res) => {
             [memberId]);
 
         res.json({ data: "Member deleted successfully" });
+    } catch (err) {
+        console.error(err);
+        res.status(401).json({ message: "Invalid token" });
+    }
+});
+
+
+router.get("/passes", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader?.startsWith("Bearer "))
+            return res.status(401).json({ message: "Token missing" });
+
+        const token = authHeader.split(" ")[1];
+        const data = jwt.verify(token, process.env.JWT_SECRET);
+        const [rows] = await pool.query("SELECT * FROM pass");
+        console.log(rows)
+
+        res.json({ data: rows });
+    } catch (err) {
+        console.error(err);
+        res.status(401).json({ message: "Invalid token" });
+    }
+});
+
+router.get("/payments", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader?.startsWith("Bearer "))
+            return res.status(401).json({ message: "Token missing" });
+
+        const token = authHeader.split(" ")[1];
+        const data = jwt.verify(token, process.env.JWT_SECRET);
+        const [rows] = await pool.query("SELECT * FROM payment");
+        console.log(rows)
+
+        res.json({ data: rows });
+    } catch (err) {
+        console.error(err);
+        res.status(401).json({ message: "Invalid token" });
+    }
+});
+
+router.get("/registrations", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader?.startsWith("Bearer "))
+            return res.status(401).json({ message: "Token missing" });
+
+        const token = authHeader.split(" ")[1];
+        const data = jwt.verify(token, process.env.JWT_SECRET);
+        const [rows] = await pool.query("SELECT * FROM registration");
+        console.log(rows)
+
+        res.json({ data: rows });
+    } catch (err) {
+        console.error(err);
+        res.status(401).json({ message: "Invalid token" });
+    }
+});
+
+router.get("/seats", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader?.startsWith("Bearer "))
+            return res.status(401).json({ message: "Token missing" });
+
+        const token = authHeader.split(" ")[1];
+        const data = jwt.verify(token, process.env.JWT_SECRET);
+        const [rows] = await pool.query("SELECT * FROM seat");
+        console.log(rows)
+
+        res.json({ data: rows });
+    } catch (err) {
+        console.error(err);
+        res.status(401).json({ message: "Invalid token" });
+    }
+});
+
+router.get("/sponsors", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader?.startsWith("Bearer "))
+            return res.status(401).json({ message: "Token missing" });
+
+        const token = authHeader.split(" ")[1];
+        const data = jwt.verify(token, process.env.JWT_SECRET);
+        const [rows] = await pool.query("SELECT * FROM sponsor");
+        console.log(rows)
+
+        res.json({ data: rows });
+    } catch (err) {
+        console.error(err);
+        res.status(401).json({ message: "Invalid token" });
+    }
+});
+
+router.get("/tournaments", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader?.startsWith("Bearer "))
+            return res.status(401).json({ message: "Token missing" });
+
+        const token = authHeader.split(" ")[1];
+        const data = jwt.verify(token, process.env.JWT_SECRET);
+        const [rows] = await pool.query("SELECT * FROM tournament");
+        console.log(rows)
+
+        res.json({ data: rows });
     } catch (err) {
         console.error(err);
         res.status(401).json({ message: "Invalid token" });
