@@ -243,7 +243,7 @@ router.get("/tournaments", async (req, res) => {
 
         const token = authHeader.split(" ")[1];
         const data = jwt.verify(token, process.env.JWT_SECRET);
-        const [rows] = await pool.query("SELECT * FROM tournament");
+        const [rows] = await pool.query("SELECT * FROM tournamen");
         console.log(rows)
 
         res.json({ data: rows });
