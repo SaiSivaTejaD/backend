@@ -307,19 +307,6 @@ router.post('/registrations', async (req, res) => {
         });
 
     } catch (err) {
-
-        // Handle MySQL foreign key constraint failure
-        if (err.code === "ER_NO_REFERENCED_ROW_2") {
-            return res.status(400).json({
-                message: "Invalid tourney_id or member_id (foreign key error)"
-            });
-        }
-
-        // Handle invalid token
-        if (err.name === "JsonWebTokenError") {
-            return res.status(401).json({ message: "Invalid token" });
-        }
-
         return res.status(500).json({ message: "Server error" });
     }
 });
