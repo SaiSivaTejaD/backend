@@ -198,12 +198,10 @@ router.put("/passes/:id", async (req, res) => {
         const token = authHeader.split(" ")[1];
         const data = jwt.verify(token, process.env.JWT_SECRET);
 
-        const passId = req.params.id;    // 👈 ID available now
+        const passId = req.params.id;
 
-        // Data from body
         const { member_id, seat_id, start_ts, end_ts, price, status } = req.body;
 
-        // Run update query
         const [result] = await pool.query(
             `UPDATE pass SET member_id=?, seat_id=?, start_ts=?, end_ts=?, price=?, status=? 
              WHERE pass_id=?`,
@@ -227,7 +225,7 @@ router.delete("/passes/:id", async (req, res) => {
         const token = authHeader.split(" ")[1];
         jwt.verify(token, process.env.JWT_SECRET);
 
-        const passId = req.params.id; // 👈 Pass ID here
+        const passId = req.params.id;
 
         const [result] = await pool.query(
             "DELETE FROM pass WHERE pass_id = ?",
