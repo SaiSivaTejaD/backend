@@ -295,7 +295,6 @@ router.post('/registrations', async (req, res) => {
             [tourney_id, member_id, seed_no, result]
         );
 
-        // 👇 MUST send a response, otherwise request will hang forever
         res.json({
             message: "Registration created successfully",
             registration_id: resultData.insertId
@@ -314,18 +313,15 @@ router.put("/registrations/:id", async (req, res) => {
         }
 
         const token = authHeader.split(" ")[1];
-        // will throw if invalid
         jwt.verify(token, process.env.JWT_SECRET);
 
         const registrationId = req.params.id;
         const { tourney_id, member_id, seed_no, result } = req.body;
 
-        // basic validation
         if (!tourney_id || !member_id) {
             return res.status(400).json({ message: "tourney_id and member_id are required" });
         }
 
-        // ensure referenced member exists
         const [memberRows] = await pool.query(
             "SELECT 1 FROM member WHERE member_id = ? LIMIT 1",
             [member_id]
