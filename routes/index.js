@@ -22,7 +22,6 @@ router.post("/register", async (req, res) => {
 
         res.json({ message: "Registered successfully" });
     } catch (err) {
-        console.error(err);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -37,7 +36,6 @@ router.post("/login", async (req, res) => {
             return res.status(401).json({ message: "Invalid email or password" });
 
         const user = rows[0];
-        console.log(user);
         const isMatch = password === user.password;
         if (!isMatch)
             return res.status(401).json({ message: "Invalid email or password" });
@@ -50,7 +48,6 @@ router.post("/login", async (req, res) => {
 
         res.json({ message: "Login successful", token });
     } catch (err) {
-        console.error(err);
         res.status(500).json({ message: "Server error" });
     }
 });
@@ -66,11 +63,9 @@ router.get("/members", async (req, res) => {
         const token = authHeader.split(" ")[1];
         const data = jwt.verify(token, process.env.JWT_SECRET);
         const [rows] = await pool.query("SELECT * FROM member");
-        console.log(rows)
 
         res.json({ data: rows });
     } catch (err) {
-        console.error(err);
         res.status(401).json({ message: "Invalid token" });
     }
 });
@@ -90,7 +85,6 @@ router.post("/members", async (req, res) => {
 
         res.json({ data: "Member created successfully" });
     } catch (err) {
-        console.error(err);
         res.status(401).json({ message: "Invalid token" });
     }
 });
@@ -112,7 +106,6 @@ router.put("/members/:id", async (req, res) => {
 
         res.json({ data: "Member updated successfully" });
     } catch (err) {
-        console.error(err);
         res.status(401).json({ message: "Invalid token" });
     }
 });
@@ -133,7 +126,6 @@ router.delete("/members/:id", async (req, res) => {
 
         res.json({ data: "Member deleted successfully" });
     } catch (err) {
-        console.error(err);
         res.status(401).json({ message: "Invalid token" });
     }
 });
@@ -149,14 +141,112 @@ router.get("/passes", async (req, res) => {
         const token = authHeader.split(" ")[1];
         const data = jwt.verify(token, process.env.JWT_SECRET);
         const [rows] = await pool.query("SELECT * FROM pass");
-        console.log(rows)
 
         res.json({ data: rows });
     } catch (err) {
-        console.error(err);
         res.status(401).json({ message: "Invalid token" });
     }
 });
+
+router.post("/passes", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader?.startsWith("Bearer "))
+            return res.status(401).json({ message: "Token missing" });
+
+        const token = authHeader.split(" ")[1];
+        const data = jwt.verify(token, process.env.JWT_SECRET);
+        const { member_id, seat_id, start_ts, end_ts, price, status } = req.body
+        // 1) ensure seat exists
+        const [seatRows] = await pool.query(
+            "SELECT 1 FROM seat WHERE seat_id = ? LIMIT 1",
+            [seat_id]
+        );
+        if (seatRows.length === 0) {
+            return res.status(400).json({ message: "seat_id does not exist" });
+        }
+
+        // 2) optionally ensure member exists
+        const [memberRows] = await pool.query(
+            "SELECT 1 FROM member WHERE member_id = ? LIMIT 1",
+            [member_id]
+        );
+        if (memberRows.length === 0) {
+            return res.status(400).json({ message: "member_id does not exist" });
+        }
+
+        // 3) insert pass
+        const [result] = await pool.query(
+            `INSERT INTO pass (member_id, seat_id, start_ts, end_ts, price, status)
+   VALUES (?, ?, ?, ?, ?, ?)`,
+            [member_id, seat_id, start_ts, end_ts, price, status]
+        );
+
+
+        res.json({ message: "Pass created", passId: result.insertId });
+    } catch (err) {
+        res.status(401).json({ message: "Invalid token" });
+    }
+});
+
+router.put("/passes/:id", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader?.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "Token missing" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        const data = jwt.verify(token, process.env.JWT_SECRET);
+
+        const passId = req.params.id;    // 👈 ID available now
+
+        // Data from body
+        const { member_id, seat_id, start_ts, end_ts, price, status } = req.body;
+
+        // Run update query
+        const [result] = await pool.query(
+            `UPDATE pass SET member_id=?, seat_id=?, start_ts=?, end_ts=?, price=?, status=? 
+             WHERE pass_id=?`,
+            [member_id, seat_id, start_ts, end_ts, price, status, passId]
+        );
+
+        res.json({ message: "Pass updated", updatedRows: result.affectedRows });
+    } catch (err) {
+        res.status(401).json({ message: "Invalid token" });
+    }
+});
+
+router.delete("/passes/:id", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader?.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "Token missing" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        jwt.verify(token, process.env.JWT_SECRET);
+
+        const passId = req.params.id; // 👈 Pass ID here
+
+        const [result] = await pool.query(
+            "DELETE FROM pass WHERE pass_id = ?",
+            [passId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Pass not found" });
+        }
+
+        res.json({ message: "Pass deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ message: "Server error" });
+    }
+});
+
 
 router.get("/payments", async (req, res) => {
     try {
@@ -168,11 +258,9 @@ router.get("/payments", async (req, res) => {
         const token = authHeader.split(" ")[1];
         const data = jwt.verify(token, process.env.JWT_SECRET);
         const [rows] = await pool.query("SELECT * FROM payment");
-        console.log(rows)
 
         res.json({ data: rows });
     } catch (err) {
-        console.error(err);
         res.status(401).json({ message: "Invalid token" });
     }
 });
@@ -187,14 +275,144 @@ router.get("/registrations", async (req, res) => {
         const token = authHeader.split(" ")[1];
         const data = jwt.verify(token, process.env.JWT_SECRET);
         const [rows] = await pool.query("SELECT * FROM registration");
-        console.log(rows)
 
         res.json({ data: rows });
     } catch (err) {
-        console.error(err);
         res.status(401).json({ message: "Invalid token" });
     }
 });
+
+router.post('/registrations', async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader?.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "Token missing" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        jwt.verify(token, process.env.JWT_SECRET);
+
+        const { tourney_id, member_id, seed_no, result } = req.body;
+
+        const [resultData] = await pool.query(
+            "INSERT INTO registration (tourney_id, member_id, seed_no, result) VALUES (?, ?, ?, ?)",
+            [tourney_id, member_id, seed_no, result]
+        );
+
+        // 👇 MUST send a response, otherwise request will hang forever
+        res.json({
+            message: "Registration created successfully",
+            registration_id: resultData.insertId
+        });
+
+    } catch (err) {
+
+        // Handle MySQL foreign key constraint failure
+        if (err.code === "ER_NO_REFERENCED_ROW_2") {
+            return res.status(400).json({
+                message: "Invalid tourney_id or member_id (foreign key error)"
+            });
+        }
+
+        // Handle invalid token
+        if (err.name === "JsonWebTokenError") {
+            return res.status(401).json({ message: "Invalid token" });
+        }
+
+        return res.status(500).json({ message: "Server error" });
+    }
+});
+
+router.put("/registrations/:id", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader?.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "Token missing" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        // will throw if invalid
+        jwt.verify(token, process.env.JWT_SECRET);
+
+        const registrationId = req.params.id;
+        const { tourney_id, member_id, seed_no, result } = req.body;
+
+        // basic validation
+        if (!tourney_id || !member_id) {
+            return res.status(400).json({ message: "tourney_id and member_id are required" });
+        }
+
+        // ensure referenced member exists
+        const [memberRows] = await pool.query(
+            "SELECT 1 FROM member WHERE member_id = ? LIMIT 1",
+            [member_id]
+        );
+        if (memberRows.length === 0) {
+            return res.status(400).json({ message: "member_id does not exist" });
+        }
+
+        const [updateResult] = await pool.query(
+            `UPDATE registration
+       SET tourney_id = ?, member_id = ?, seed_no = ?, result = ?
+       WHERE registration_id = ?`,
+            [tourney_id, member_id, seed_no ?? null, result ?? null, registrationId]
+        );
+
+        if (updateResult.affectedRows === 0) {
+            return res.status(404).json({ message: "Registration not found" });
+        }
+
+        return res.json({
+            message: "Registration updated successfully",
+            updatedRows: updateResult.affectedRows
+        });
+    } catch (err) {
+
+        if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
+            return res.status(401).json({ message: "Invalid or expired token" });
+        }
+
+        if (err.code === "ER_NO_REFERENCED_ROW_2") {
+            return res.status(400).json({ message: "Invalid foreign key value" });
+        }
+
+        return res.status(500).json({ message: "Server error" });
+    }
+});
+
+router.delete("/registrations/:id", async (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader?.startsWith("Bearer ")) {
+            return res.status(401).json({ message: "Token missing" });
+        }
+
+        const token = authHeader.split(" ")[1];
+        jwt.verify(token, process.env.JWT_SECRET);
+
+        const registrationId = req.params.id;
+
+        const [result] = await pool.query(
+            "DELETE FROM registration WHERE registration_id = ?",
+            [registrationId]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Registration not found" });
+        }
+
+        return res.json({
+            message: "Registration deleted successfully",
+            deletedRows: result.affectedRows,
+        });
+    } catch (err) {
+        return res.status(500).json({ message: "Server error" });
+    }
+});
+
+
 
 router.get("/seats", async (req, res) => {
     try {
@@ -206,11 +424,9 @@ router.get("/seats", async (req, res) => {
         const token = authHeader.split(" ")[1];
         const data = jwt.verify(token, process.env.JWT_SECRET);
         const [rows] = await pool.query("SELECT * FROM seat");
-        console.log(rows)
 
         res.json({ data: rows });
     } catch (err) {
-        console.error(err);
         res.status(401).json({ message: "Invalid token" });
     }
 });
@@ -225,11 +441,9 @@ router.get("/sponsors", async (req, res) => {
         const token = authHeader.split(" ")[1];
         const data = jwt.verify(token, process.env.JWT_SECRET);
         const [rows] = await pool.query("SELECT * FROM sponsor");
-        console.log(rows)
 
         res.json({ data: rows });
     } catch (err) {
-        console.error(err);
         res.status(401).json({ message: "Invalid token" });
     }
 });
@@ -244,11 +458,9 @@ router.get("/tournaments", async (req, res) => {
         const token = authHeader.split(" ")[1];
         const data = jwt.verify(token, process.env.JWT_SECRET);
         const [rows] = await pool.query("SELECT * FROM tournament");
-        console.log(rows)
 
         res.json({ data: rows });
     } catch (err) {
-        console.error(err);
         res.status(401).json({ message: "Invalid token" });
     }
 });
