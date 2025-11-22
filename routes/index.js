@@ -158,7 +158,6 @@ router.post("/passes", async (req, res) => {
         const token = authHeader.split(" ")[1];
         const data = jwt.verify(token, process.env.JWT_SECRET);
         const { member_id, seat_id, start_ts, end_ts, price, status } = req.body
-        // 1) ensure seat exists
         const [seatRows] = await pool.query(
             "SELECT 1 FROM seat WHERE seat_id = ? LIMIT 1",
             [seat_id]
@@ -167,7 +166,6 @@ router.post("/passes", async (req, res) => {
             return res.status(400).json({ message: "seat_id does not exist" });
         }
 
-        // 2) optionally ensure member exists
         const [memberRows] = await pool.query(
             "SELECT 1 FROM member WHERE member_id = ? LIMIT 1",
             [member_id]
@@ -176,7 +174,6 @@ router.post("/passes", async (req, res) => {
             return res.status(400).json({ message: "member_id does not exist" });
         }
 
-        // 3) insert pass
         const [result] = await pool.query(
             `INSERT INTO pass (member_id, seat_id, start_ts, end_ts, price, status)
    VALUES (?, ?, ?, ?, ?, ?)`,
